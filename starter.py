@@ -1,12 +1,5 @@
 import math
-# import numpy as np
-# from sklearn.metrics.pairwise import cosine_similarity
 
-# def numpy_euclidean(a, b):
-#     a, b = np.array(a, dtype=int), np.array(b, dtype=int)
-#     return np.linalg.norm(a-b)
-
-# returns Euclidean distance between examples a dn b
 def euclidean(a,b):
     
     res = 0
@@ -35,20 +28,36 @@ def cosim(a,b):
     res = abDot/(distance_product)
     return res
 
-# returns a list of labels for the query dataset based upon labeled observations in the train dataset.
-# metric is a string specifying either "euclidean" or "cosim".  
-# All hyper-parameters should be hard-coded in the algorithm.
-def knn(train,query,metric):
-    labels = []
-    #change this as needed - hyperparememter
-    k = 2
+def downsample_image(image, n=2):
+    downsampled_image = []
 
+    for row in range(0, 28, n):
+        for col in range(0, 28, n):
+            avg_pixel = 0
+            for i in range(n):
+                for j in range(n):
+                    avg_pixel += int(image[(row+i)*28 + col+j])
+            avg_pixel //= (n*n)
+            downsampled_image.append(avg_pixel)
+            
+    return downsampled_image
+
+# Modify KNN function
+def knn(train, query, metric):
+    labels = []
+    k = 2  # hyperparameter
+
+    # Downsample training data first
+    downsampled_train = [[label, downsample_image(data, 1)] for label, data in train]
+    
     for q in query:
+        # Downsample query data
+        downsampled_q = downsample_image(q, 1)
+
         if metric == 'euclidean':
-            # gets distances from the last 784 columns
-            distances = [(euclidean(q, t[1]), t[0]) for t in train]
+            distances = [(euclidean(downsampled_q, t[1]), t[0]) for t in downsampled_train]
         elif metric == 'cosim':
-            distances = [(cosim(q, t[1]), t[0]) for t in train]
+            distances = [(cosim(downsampled_q, t[1]), t[0]) for t in downsampled_train]
 
         distances.sort()
         labelCount = {}
@@ -64,6 +73,7 @@ def knn(train,query,metric):
         labels.append(mostCommon)
         
     return labels
+
 
 # returns a list of labels for the query dataset based upon observations in the train dataset. 
 # labels should be ignored in the training set
