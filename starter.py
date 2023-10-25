@@ -47,12 +47,11 @@ def knn(train, query, metric):
     labels = []
     k = 2  # hyperparameter
 
-    # Downsample training data first
-    downsampled_train = [[label, downsample_image(data, 1)] for label, data in train]
+    downsampled_train = [[label, downsample_image(data, 2)] for label, data in train]
     
     for q in query:
         # Downsample query data
-        downsampled_q = downsample_image(q, 1)
+        downsampled_q = downsample_image(q, 2)
 
         if metric == 'euclidean':
             distances = [(euclidean(downsampled_q, t[1]), t[0]) for t in downsampled_train]
