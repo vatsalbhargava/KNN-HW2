@@ -99,10 +99,10 @@ def kmeans_train(train, metric, k=10, max_iterations=400):
         # Assign each data point to the closest centroid
         clusters = [[] for _ in range(k)]
         for i, point in enumerate(data):
-            if metric == 'eulidean':
+            if metric == 'euclidean':
                 distances = [euclidean(point, centroid) for centroid in centroids]
             elif metric == 'cosim':
-                distance = [cosim(point, centroid) for centroid in centroids]
+                distances = [cosim(point, centroid) for centroid in centroids]
             cluster_idx = distances.index(min(distances))
             clusters[cluster_idx].append((train[i][0], point))
     
@@ -192,3 +192,17 @@ if __name__ == "__main__":
     print(confusion_matrix)
 
     print(cor/total)
+    
+    # res = kmeans(training_data, validation_set, 'euclidean')
+    # cor = 0
+    # total = len(queries)
+    # confusion_matrix = [[0]*10 for _ in range(10)]
+
+    # for i in range(len(queries)):
+    #     confusion_matrix[int(res[i])][int(correct[i])] += 1
+    #     if res[i] == correct[i]:
+    #         cor += 1
+
+    # print(confusion_matrix)
+
+    # print(cor/total)
