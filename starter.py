@@ -40,7 +40,7 @@ def downsample_image(image, n=2):
                 for j in range(n):
                     avg_pixel += int(image[(row+i)*28 + col+j])
             avg_pixel //= (n*n)
-        downsampled_image.append(avg_pixel)
+            downsampled_image.append(avg_pixel)
         
     return downsampled_image
 
@@ -82,12 +82,12 @@ def knn(train, query, metric):
 # All hyper-parameters should be hard-coded in the algorithm.
 def kmeans(train,query,metric):
     k = 10
-    max_iters = 400
+    max_iters = 100
     centroids, cluster_labels = kmeans_train(train, metric, k, max_iters)
     labels = kmeans_predict(centroids, cluster_labels, query)
     return labels
 
-def kmeans_train(train, metric, k=10, max_iterations=400):
+def kmeans_train(train, metric, k=10, max_iterations=100):
 
     # Ignoring labels during training
     data = [x[1] for x in train]
@@ -99,10 +99,10 @@ def kmeans_train(train, metric, k=10, max_iterations=400):
         # Assign each data point to the closest centroid
         clusters = [[] for _ in range(k)]
         for i, point in enumerate(data):
-            if metric == 'eulidean':
+            if metric == 'euclidean':
                 distances = [euclidean(point, centroid) for centroid in centroids]
             elif metric == 'cosim':
-                distance = [cosim(point, centroid) for centroid in centroids]
+                distances = [cosim(point, centroid) for centroid in centroids]
             cluster_idx = distances.index(min(distances))
             clusters[cluster_idx].append((train[i][0], point))
     
@@ -178,17 +178,31 @@ if __name__ == "__main__":
     validation_set = read_data('valid.csv')
     queries = [q[1] for q in validation_set]
     correct = [q[0] for q in validation_set]
-    res = knn(training_data, queries, 'euclidean')
+    resKnn = knn(training_data, queries, 'euclidean')
+    resKmeans = kmeans(training_data, queries, 'euclidean')
 
     cor = 0
     total = len(queries)
     confusion_matrix = [[0]*10 for _ in range(10)]
 
+    #knn test
     for i in range(len(queries)):
-        confusion_matrix[int(res[i])][int(correct[i])] += 1
-        if res[i] == correct[i]:
+        confusion_matrix[int(resKnn[i])][int(correct[i])] += 1
+        if resKnn[i] == correct[i]:
             cor += 1
 
     print(confusion_matrix)
+    print(cor/total)
 
+    cor = 0
+    total = len(queries)
+    confusion_matrix = [[0]*10 for _ in range(10)]
+
+    #kMeans test
+    for i in range(len(queries)):
+        confusion_matrix[int(resKmeans[i])][int(correct[i])] += 1
+        if resKmeans[i] == correct[i]:
+            cor += 1
+
+    print(confusion_matrix)
     print(cor/total)
