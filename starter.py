@@ -1,26 +1,28 @@
 import math
+import random
+
 
 def euclidean(a,b):
-    
+
     res = 0
     for i in range(len(a)):
         res += abs(int(a[i]) - int(b[i]))**2
 
     return math.sqrt(res)
-    
+
 
 def getDot(a,b):
     res = 0
     for i in range(len(a)):
         res += int(a[i])*int(b[i])
     return res
-    
+
 def getVecLen(x):
     res = 0
     for i in range(len(x)):
         res += (int(x[i])-0)**2
     return math.sqrt(res)
-        
+    
 # returns Cosine Similarity between examples a dn b
 def cosim(a,b):
     abDot = getDot(a,b)
@@ -38,8 +40,8 @@ def downsample_image(image, n=2):
                 for j in range(n):
                     avg_pixel += int(image[(row+i)*28 + col+j])
             avg_pixel //= (n*n)
-            downsampled_image.append(avg_pixel)
-            
+        downsampled_image.append(avg_pixel)
+        
     return downsampled_image
 
 # Modify KNN function
@@ -48,7 +50,7 @@ def knn(train, query, metric):
     k = 2  # hyperparameter
 
     downsampled_train = [[label, downsample_image(data, 2)] for label, data in train]
-    
+
     for q in query:
         # Downsample query data
         downsampled_q = downsample_image(q, 2)
@@ -79,7 +81,57 @@ def knn(train, query, metric):
 # metric is a string specifying either "euclidean" or "cosim".  
 # All hyper-parameters should be hard-coded in the algorithm.
 def kmeans(train,query,metric):
-    return(labels)
+    centroids, cluster_labels = kmeans_train(train, metric, k, max_iterations)
+    labels = kmeans_predict(centroids, cluster_labels, query)
+    return labels
+
+def kmeans_train(train, metric, k=10, max_iterations=400):
+
+    # Ignoring labels during training
+    data = [x[1] for x in train]
+
+    # Initialize centroids randomly
+    centroids = random.sample(data, k)
+
+    for _ in range(max_iterations):
+        # Assign each data point to the closest centroid
+        clusters = [[] for _ in range(k)]
+        for i, point in enumerate(data):
+            if metric == 'eulidean':
+                distances = [euclidean(point, centroid) for centroid in centroids]
+            elif metric == 'cosim':
+                distance = [cosim(point, centroid) for centroid in centroids]
+            cluster_idx = distances.index(min(distances))
+            clusters[cluster_idx].append((train[i][0], point))
+    
+    # Update centroids
+    for i, cluster in enumerate(clusters):
+        if cluster:
+            centroids[i] = [sum(x[1][j] for x in cluster) / len(cluster) for j in range(len(cluster[0][1]))]
+
+    # Label each cluster by majority voting
+    cluster_labels = []
+    for cluster in clusters:
+        labels = [x[0] for x in cluster]
+        most_common = max(labels, key=labels.count)
+        cluster_labels.append(most_common)
+
+    return centroids, cluster_labels
+
+def kmeans_predict(centroids, cluster_labels, queries):
+    predicted_labels = []
+    for query in queries:
+        distances = [euclidean(query, centroid) for centroid in centroids]
+        cluster_idx = distances.index(min(distances))
+        predicted_labels.append(cluster_labels[cluster_idx])
+
+    return predicted_labels
+
+def kmeans_classifier(train, query):
+    centroids, cluster_labels = kmeans_train(train)
+    labels = kmeans_predict(centroids, cluster_labels, query)
+    return labels
+
 
 def read_data(file_name):
     
@@ -138,4 +190,3 @@ if __name__ == "__main__":
     print(confusion_matrix)
 
     print(cor/total)
-
