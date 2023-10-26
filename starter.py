@@ -82,15 +82,15 @@ def knn(train, query, metric):
 # All hyper-parameters should be hard-coded in the algorithm.
 def kmeans(train,query,metric):
     k = 10
-    max_iters = 100
+    max_iters = 400
     centroids, cluster_labels = kmeans_train(train, metric, k, max_iters)
     labels = kmeans_predict(centroids, cluster_labels, query)
     return labels
 
 def kmeans_train(train, metric, k=10, max_iterations=100):
 
-    # Ignoring labels during training
-    data = [x[1] for x in train]
+    # Downsample and ignore labels during training
+    data = [downsample_image(x[1], 2) for x in train]
 
     # Initialize centroids randomly
     centroids = random.sample(data, k)
@@ -105,34 +105,37 @@ def kmeans_train(train, metric, k=10, max_iterations=100):
                 distances = [cosim(point, centroid) for centroid in centroids]
             cluster_idx = distances.index(min(distances))
             clusters[cluster_idx].append((train[i][0], point))
-    
-    # Update centroids
-    for i, cluster in enumerate(clusters):
-        if cluster:
-            centroids[i] = [sum(x[1][j] for x in cluster) / len(cluster) for j in range(len(cluster[0][1]))]
 
-    # Label each cluster by majority voting
-    cluster_labels = []
-    for cluster in clusters:
-        labels = [x[0] for x in cluster]
-        most_common = max(labels, key=labels.count)
-        cluster_labels.append(most_common)
+        # Update centroids
+        for i, cluster in enumerate(clusters):
+            if cluster:
+                centroids[i] = [sum(float(x[1][j]) for x in cluster) / len(cluster) for j in range(len(cluster[0][1]))]
+
+        # Label each cluster by majority voting
+        cluster_labels = []
+        for cluster in clusters:
+            labels = [x[0] for x in cluster]
+            most_common = max(labels, key=labels.count)
+            cluster_labels.append(most_common)
 
     return centroids, cluster_labels
 
-def kmeans_predict(centroids, cluster_labels, queries):
+def kmeans_predict(centroids, cluster_labels, queries, metric='euclidean'):
     predicted_labels = []
+
     for query in queries:
-        distances = [euclidean(query, centroid) for centroid in centroids]
+        # Downsample the query data
+        downsampled_query = downsample_image(query, 2)
+
+        if metric == 'euclidean':
+            distances = [euclidean(downsampled_query, centroid) for centroid in centroids]
+        elif metric == 'cosim':
+            distances = [cosim(downsampled_query, centroid) for centroid in centroids]
+            
         cluster_idx = distances.index(min(distances))
         predicted_labels.append(cluster_labels[cluster_idx])
 
     return predicted_labels
-
-def kmeans_classifier(train, query):
-    centroids, cluster_labels = kmeans_train(train)
-    labels = kmeans_predict(centroids, cluster_labels, query)
-    return labels
 
 
 def read_data(file_name):
