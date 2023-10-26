@@ -81,7 +81,9 @@ def knn(train, query, metric):
 # metric is a string specifying either "euclidean" or "cosim".  
 # All hyper-parameters should be hard-coded in the algorithm.
 def kmeans(train,query,metric):
-    centroids, cluster_labels = kmeans_train(train, metric, k, max_iterations)
+    k = 10
+    max_iters = 400
+    centroids, cluster_labels = kmeans_train(train, metric, k, max_iters)
     labels = kmeans_predict(centroids, cluster_labels, query)
     return labels
 
