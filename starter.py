@@ -128,10 +128,14 @@ if __name__ == "__main__":
 
     cor = 0
     total = len(queries)
+    confusion_matrix = [[0]*10 for _ in range(10)]
 
     for i in range(len(queries)):
+        confusion_matrix[int(res[i])][int(correct[i])] += 1
         if res[i] == correct[i]:
             cor += 1
+
+    print(confusion_matrix)
 
     print(cor/total)
 
