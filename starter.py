@@ -1,26 +1,24 @@
 import math
 import random
+import numpy as np
 
 
 def euclidean(a,b):
-
     res = 0
     for i in range(len(a)):
-        res += abs(int(a[i]) - int(b[i]))**2
-
+        res += abs(float(a[i]) - float(b[i]))**2
     return math.sqrt(res)
-
 
 def getDot(a,b):
     res = 0
     for i in range(len(a)):
-        res += int(a[i])*int(b[i])
+        res += float(a[i])*float(b[i])
     return res
 
 def getVecLen(x):
     res = 0
     for i in range(len(x)):
-        res += (int(x[i])-0)**2
+        res += (float(x[i])-0)**2
     return math.sqrt(res)
     
 # returns Cosine Similarity between examples a dn b
@@ -38,7 +36,7 @@ def downsample_image(image, n=2):
             avg_pixel = 0
             for i in range(n):
                 for j in range(n):
-                    avg_pixel += int(image[(row+i)*28 + col+j])
+                    avg_pixel += float(image[(row+i)*28 + col+j])
             avg_pixel //= (n*n)
             downsampled_image.append(avg_pixel)
         
@@ -57,10 +55,11 @@ def knn(train, query, metric):
 
         if metric == 'euclidean':
             distances = [(euclidean(downsampled_q, t[1]), t[0]) for t in downsampled_train]
+            distances.sort()
         elif metric == 'cosim':
             distances = [(cosim(downsampled_q, t[1]), t[0]) for t in downsampled_train]
+            distances.sort(reverse=True)
 
-        distances.sort()
         labelCount = {}
         
         for i in range(k):
@@ -71,7 +70,11 @@ def knn(train, query, metric):
                 labelCount[label] += 1
         
         mostCommon = max(labelCount, key=labelCount.get)
+        #do the mode thing here
         labels.append(mostCommon)
+
+        #k=4 was their best, maybe play around with it
+        #change the mostCommon selection to if there were more than one max, chose the one thats closest
         
     return labels
 
@@ -114,6 +117,9 @@ def kmeans_train(train, metric, k=10, max_iterations=100):
         # Label each cluster by majority voting
         cluster_labels = []
         for cluster in clusters:
+            if not cluster:  # Check if the cluster is empty
+                cluster_labels.append(None)  # Append a placeholder value for empty clusters
+                continue
             labels = [x[0] for x in cluster]
             most_common = max(labels, key=labels.count)
             cluster_labels.append(most_common)
@@ -133,9 +139,14 @@ def kmeans_predict(centroids, cluster_labels, queries, metric='euclidean'):
             distances = [cosim(downsampled_query, centroid) for centroid in centroids]
             
         cluster_idx = distances.index(min(distances))
-        predicted_labels.append(cluster_labels[cluster_idx])
+        
+        if cluster_labels[cluster_idx] is None:
+            predicted_labels.append("-1")  # Use a default label for empty clusters
+        else:
+            predicted_labels.append(cluster_labels[cluster_idx])
 
     return predicted_labels
+
 
 
 def read_data(file_name):
@@ -181,31 +192,40 @@ if __name__ == "__main__":
     validation_set = read_data('valid.csv')
     queries = [q[1] for q in validation_set]
     correct = [q[0] for q in validation_set]
-    resKnn = knn(training_data, queries, 'euclidean')
-    resKmeans = kmeans(training_data, queries, 'euclidean')
+    resKnn = knn(training_data, queries, 'cosim')
+    resKmeans = kmeans(training_data, queries, 'cosim')
 
+    #knn test
     cor = 0
     total = len(queries)
     confusion_matrix = [[0]*10 for _ in range(10)]
 
-    #knn test
     for i in range(len(queries)):
         confusion_matrix[int(resKnn[i])][int(correct[i])] += 1
         if resKnn[i] == correct[i]:
             cor += 1
 
+    print("KNN Score:")
     print(confusion_matrix)
     print(cor/total)
 
+
+    #kMeans test
     cor = 0
     total = len(queries)
     confusion_matrix = [[0]*10 for _ in range(10)]
 
-    #kMeans test
     for i in range(len(queries)):
-        confusion_matrix[int(resKmeans[i])][int(correct[i])] += 1
-        if resKmeans[i] == correct[i]:
+        predicted_label = int(resKmeans[i])
+        true_label = int(correct[i])
+        
+        if predicted_label == -1:  # Skip the rows with default labels
+            continue
+        
+        confusion_matrix[predicted_label][true_label] += 1
+        if predicted_label == true_label:
             cor += 1
 
+    print("KMeans Score:")
     print(confusion_matrix)
     print(cor/total)
