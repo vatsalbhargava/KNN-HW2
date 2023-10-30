@@ -61,16 +61,28 @@ def knn(train, query, metric):
             distances.sort(reverse=True)
 
         labelCount = {}
+        distanceCount = {}
         
         for i in range(k):
+            distance = distances[i][0]
             label = distances[i][1]
             if label not in labelCount:
+                distanceCount[label] = distance
                 labelCount[label] = 1
             else:
+                distanceCount[label] += (distanceCount[label]*labelCount[label])+distance
                 labelCount[label] += 1
-        
-        mostCommon = max(labelCount, key=labelCount.get)
+                distanceCount[label] = distanceCount[label]/labelCount[label]
+
+        #this is new below
+        #sorted_labels = dict(sorted(labelCount.items(), key=lambda item: item[1], reverse=True))
+        #mostCommon, mostCommonCount = next(iter(sorted_labels.items()))
+        #mostCommon = max(labelCount, key=labelCount.get)
+        mostCommon = max(labelCount, key=lambda label: (labelCount[label], -distanceCount[label]))
+
+
         #do the mode thing here
+
         labels.append(mostCommon)
 
         #k=4 was their best, maybe play around with it
@@ -192,8 +204,8 @@ if __name__ == "__main__":
     validation_set = read_data('valid.csv')
     queries = [q[1] for q in validation_set]
     correct = [q[0] for q in validation_set]
-    resKnn = knn(training_data, queries, 'cosim')
-    resKmeans = kmeans(training_data, queries, 'cosim')
+    resKnn = knn(training_data, queries, 'euclidean')
+    #resKmeans = kmeans(training_data, queries, 'cosim')
 
     #knn test
     cor = 0
@@ -211,21 +223,21 @@ if __name__ == "__main__":
 
 
     #kMeans test
-    cor = 0
-    total = len(queries)
-    confusion_matrix = [[0]*10 for _ in range(10)]
+    # cor = 0
+    # total = len(queries)
+    # confusion_matrix = [[0]*10 for _ in range(10)]
 
-    for i in range(len(queries)):
-        predicted_label = int(resKmeans[i])
-        true_label = int(correct[i])
+    # for i in range(len(queries)):
+    #     predicted_label = int(resKmeans[i])
+    #     true_label = int(correct[i])
         
-        if predicted_label == -1:  # Skip the rows with default labels
-            continue
+    #     if predicted_label == -1:  # Skip the rows with default labels
+    #         continue
         
-        confusion_matrix[predicted_label][true_label] += 1
-        if predicted_label == true_label:
-            cor += 1
+    #     confusion_matrix[predicted_label][true_label] += 1
+    #     if predicted_label == true_label:
+    #         cor += 1
 
-    print("KMeans Score:")
-    print(confusion_matrix)
-    print(cor/total)
+    # print("KMeans Score:")
+    # print(confusion_matrix)
+    # print(cor/total)
