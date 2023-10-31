@@ -45,7 +45,7 @@ def downsample_image(image, n=2):
 # Modify KNN function
 def knn(train, query, metric):
     labels = []
-    k = 2  # hyperparameter
+    k = 5
 
     downsampled_train = [[label, downsample_image(data, 2)] for label, data in train]
 
@@ -96,19 +96,33 @@ def knn(train, query, metric):
 # metric is a string specifying either "euclidean" or "cosim".  
 # All hyper-parameters should be hard-coded in the algorithm.
 def kmeans(train,query,metric):
+    # k has to be 10 for the values 0-9
     k = 10
+    # keep this in here, add convergence test if no centroids are updated if we have time
     max_iters = 400
     centroids, cluster_labels = kmeans_train(train, metric, k, max_iters)
-    labels = kmeans_predict(centroids, cluster_labels, query)
-    return labels
+    predicted_labels = []
+    for query in queries:
+        downsampled_query = downsample_image(query, 2)
 
-def kmeans_train(train, metric, k=10, max_iterations=100):
+        if metric == 'euclidean':
+            distances = [euclidean(downsampled_query, centroid) for centroid in centroids]
+        elif metric == 'cosim':
+            distances = [-cosim(downsampled_query, centroid) for centroid in centroids]
+            
+        cluster_idx = distances.index(min(distances))
+        predicted_labels.append(cluster_labels[cluster_idx])
 
-    # Downsample and ignore labels during training
+    return predicted_labels
+
+
+def kmeans_train(train, metric, k, max_iterations):
+
+    # downsample to 14x14
     data = [downsample_image(x[1], 2) for x in train]
 
-    # Initialize centroids randomly
     centroids = random.sample(data, k)
+    prev_centroids = [c[:] for c in centroids]  # Make a deep copy of the centroids
 
     for _ in range(max_iterations):
         # Assign each data point to the closest centroid
@@ -117,48 +131,29 @@ def kmeans_train(train, metric, k=10, max_iterations=100):
             if metric == 'euclidean':
                 distances = [euclidean(point, centroid) for centroid in centroids]
             elif metric == 'cosim':
-                distances = [cosim(point, centroid) for centroid in centroids]
+                distances = [-cosim(point, centroid) for centroid in centroids]
             cluster_idx = distances.index(min(distances))
             clusters[cluster_idx].append((train[i][0], point))
 
-        # Update centroids
+        # centroid update formula from the slides
         for i, cluster in enumerate(clusters):
             if cluster:
                 centroids[i] = [sum(float(x[1][j]) for x in cluster) / len(cluster) for j in range(len(cluster[0][1]))]
 
-        # Label each cluster by majority voting
+        #check convergence
+        changes = [euclidean(centroids[i], prev_centroids[i]) for i in range(k)]
+        if max(changes) < 1e-4:
+            break
+
+        prev_centroids = [c[:] for c in centroids]
+        # label cluster by the mode
         cluster_labels = []
         for cluster in clusters:
-            if not cluster:  # Check if the cluster is empty
-                cluster_labels.append(None)  # Append a placeholder value for empty clusters
-                continue
             labels = [x[0] for x in cluster]
             most_common = max(labels, key=labels.count)
             cluster_labels.append(most_common)
 
     return centroids, cluster_labels
-
-def kmeans_predict(centroids, cluster_labels, queries, metric='euclidean'):
-    predicted_labels = []
-
-    for query in queries:
-        # Downsample the query data
-        downsampled_query = downsample_image(query, 2)
-
-        if metric == 'euclidean':
-            distances = [euclidean(downsampled_query, centroid) for centroid in centroids]
-        elif metric == 'cosim':
-            distances = [cosim(downsampled_query, centroid) for centroid in centroids]
-            
-        cluster_idx = distances.index(min(distances))
-        
-        if cluster_labels[cluster_idx] is None:
-            predicted_labels.append("-1")  # Use a default label for empty clusters
-        else:
-            predicted_labels.append(cluster_labels[cluster_idx])
-
-    return predicted_labels
-
 
 
 def read_data(file_name):
@@ -197,17 +192,15 @@ def main():
     
 if __name__ == "__main__":
     main()
-    training_data = read_data('test.csv')
-    example1 = training_data[16][1]
-    example2 = training_data[8][1]
-
-    validation_set = read_data('valid.csv')
-    queries = [q[1] for q in validation_set]
-    correct = [q[0] for q in validation_set]
+    training_data = read_data('train.csv')
+    validation_or_test_set = read_data('test.csv')
+    # should we move this into the functions?? ask in OH
+    queries = [q[1] for q in validation_or_test_set]
+    correct = [q[0] for q in validation_or_test_set]
     resKnn = knn(training_data, queries, 'euclidean')
-    #resKmeans = kmeans(training_data, queries, 'cosim')
 
-    #knn test
+
+    # knn test
     cor = 0
     total = len(queries)
     confusion_matrix = [[0]*10 for _ in range(10)]
@@ -220,24 +213,20 @@ if __name__ == "__main__":
     print("KNN Score:")
     print(confusion_matrix)
     print(cor/total)
-
+    resKmeans = kmeans(training_data, queries, 'cosim')
 
     #kMeans test
-    # cor = 0
-    # total = len(queries)
-    # confusion_matrix = [[0]*10 for _ in range(10)]
+    cor = 0
+    total = len(queries)
+    confusion_matrix = [[0]*10 for _ in range(10)]
 
-    # for i in range(len(queries)):
-    #     predicted_label = int(resKmeans[i])
-    #     true_label = int(correct[i])
-        
-    #     if predicted_label == -1:  # Skip the rows with default labels
-    #         continue
-        
-    #     confusion_matrix[predicted_label][true_label] += 1
-    #     if predicted_label == true_label:
-    #         cor += 1
+    for i in range(len(queries)):
+        predicted_label = int(resKmeans[i])
+        true_label = int(correct[i])
+        confusion_matrix[predicted_label][true_label] += 1
+        if predicted_label == true_label:
+            cor += 1
 
-    # print("KMeans Score:")
-    # print(confusion_matrix)
-    # print(cor/total)
+    print("KMeans Score:")
+    print(confusion_matrix)
+    print(cor/total)
