@@ -210,7 +210,41 @@ if __name__ == "__main__":
         if resKnn[i] == correct[i]:
             cor += 1
 
-    print("KNN Score:")
+    print("KNN Score Euclidean:")
+    print(confusion_matrix)
+    print(cor/total)
+    resKmeans = kmeans(training_data, queries, 'euclidean')
+
+    #kMeans test
+    cor = 0
+    total = len(queries)
+    confusion_matrix = [[0]*10 for _ in range(10)]
+
+    for i in range(len(queries)):
+        predicted_label = int(resKmeans[i])
+        true_label = int(correct[i])
+        confusion_matrix[predicted_label][true_label] += 1
+        if predicted_label == true_label:
+            cor += 1
+
+    print("KMeans Score Euclidean:")
+    print(confusion_matrix)
+    print(cor/total)
+    
+    resKnn = knn(training_data, queries, 'cosim')
+
+
+    # knn test
+    cor = 0
+    total = len(queries)
+    confusion_matrix = [[0]*10 for _ in range(10)]
+
+    for i in range(len(queries)):
+        confusion_matrix[int(resKnn[i])][int(correct[i])] += 1
+        if resKnn[i] == correct[i]:
+            cor += 1
+
+    print("KNN Score Cosine Similarity:")
     print(confusion_matrix)
     print(cor/total)
     resKmeans = kmeans(training_data, queries, 'cosim')
@@ -227,6 +261,6 @@ if __name__ == "__main__":
         if predicted_label == true_label:
             cor += 1
 
-    print("KMeans Score:")
+    print("KMeans Score Cosine Similarity:")
     print(confusion_matrix)
     print(cor/total)
