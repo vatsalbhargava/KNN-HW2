@@ -50,7 +50,7 @@ def knn(train, query, metric):
     downsampled_train = [[label, downsample_image(data, 2)] for label, data in train]
 
     for q in query:
-        # Downsample query data
+        # downsample query data
         downsampled_q = downsample_image(q, 2)
 
         if metric == 'euclidean':
@@ -74,19 +74,12 @@ def knn(train, query, metric):
                 labelCount[label] += 1
                 distanceCount[label] = distanceCount[label]/labelCount[label]
 
-        #this is new below
-        #sorted_labels = dict(sorted(labelCount.items(), key=lambda item: item[1], reverse=True))
-        #mostCommon, mostCommonCount = next(iter(sorted_labels.items()))
-        #mostCommon = max(labelCount, key=labelCount.get)
         mostCommon = max(labelCount, key=lambda label: (labelCount[label], -distanceCount[label]))
 
 
-        #do the mode thing here
 
         labels.append(mostCommon)
 
-        #k=4 was their best, maybe play around with it
-        #change the mostCommon selection to if there were more than one max, chose the one thats closest
         
     return labels
 
